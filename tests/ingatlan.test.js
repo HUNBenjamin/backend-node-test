@@ -1,4 +1,3 @@
-
 import request from 'supertest';
 import app from '../src/app.js';
 
@@ -93,5 +92,105 @@ describe('Ingatlan CRUD - small unit tests', () => {
 
     const getAfter = await request(app).get(`/api/ingatlan/${insertedId}`);
     expect(getAfter.status).toBe(404);
+  });
+
+  // --- additional tests (3 per endpoint) ---
+
+  // POST /api/ingatlan - additional 3 tests
+  test('insertOne: validation error returns 400/422', async () => {
+    const res = await request(app).post('/api/ingatlan').send({ cim: 'No name', ar: 1000 }); // missing nev
+    expect([400, 422]).toContain(res.status);
+  });
+
+  test('insertOne: database error returns 500', async () => {
+    mockCol.insertOne = async () => { throw new Error('db error'); };
+    const res = await request(app).post('/api/ingatlan').send({ nev: 'Err', cim: 'Err', ar: 1 });
+    expect(res.status).toBe(500);
+  });
+
+  test('insertOne: duplicate key returns 409 or 400', async () => {
+    mockCol.insertOne = async () => { const e = new Error('dup'); e.code = 11000; throw e; };
+    const res = await request(app).post('/api/ingatlan').send({ nev: 'Dup', cim: 'Dup', ar: 1 });
+    expect([409, 400]).toContain(res.status);
+  });
+
+  // GET /api/ingatlan - additional 3 tests
+  test('find: empty collection returns empty array', async () => {
+    mockCol.__clear();
+    const res = await request(app).get('/api/ingatlan');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  test('find: returns multiple items when present', async () => {
+    const a = { nev: 'A', cim: 'A1', ar: 1 };
+    const b = { nev: 'B', cim: 'B1', ar: 2 };
+    const { insertedId: id1 } = await mockCol.insertOne(a);
+    const { insertedId: id2 } = await mockCol.insertOne(b);
+    const res = await request(app).get('/api/ingatlan');
+    expect(res.status).toBe(200);
+    const ids = res.body.map(it => it._id);
+    expect(ids).toEqual(expect.arrayContaining([id1, id2]));
+  });
+
+  test('find: database error returns 500', async () => {
+    mockCol.find = () => { throw new Error('db'); };
+    const res = await request(app).get('/api/ingatlan');
+    expect(res.status).toBe(500);
+  });
+
+  // GET /api/ingatlan/:id - additional 3 tests
+  test('findOne: unknown id returns 404', async () => {
+    const res = await request(app).get('/api/ingatlan/nonexistent-id-12345');
+    expect(res.status).toBe(404);
+  });
+
+  test('findOne: invalid id format returns 400/422/404', async () => {
+    const res = await request(app).get('/api/ingatlan/$$invalid$$');
+    expect([400, 422, 404]).toContain(res.status);
+  });
+
+  test('findOne: database error returns 500', async () => {
+    const { insertedId } = await mockCol.insertOne({ nev: 'X', cim: 'X', ar: 1 });
+    mockCol.findOne = async () => { throw new Error('db'); };
+    const res = await request(app).get(`/api/ingatlan/${insertedId}`);
+    expect(res.status).toBe(500);
+  });
+
+  // PUT /api/ingatlan/:id - additional 3 tests
+  test('updateOne: non-existent id returns 404', async () => {
+    const res = await request(app).put('/api/ingatlan/does-not-exist-999').send({ ar: 123 });
+    expect(res.status).toBe(404);
+  });
+
+  test('updateOne: validation error returns 400/422', async () => {
+    const { insertedId } = await mockCol.insertOne({ nev: 'U', cim: 'U', ar: 1 });
+    const res = await request(app).put(`/api/ingatlan/${insertedId}`).send({}); // invalid payload
+    expect([400, 422]).toContain(res.status);
+  });
+
+  test('updateOne: database error returns 500', async () => {
+    const { insertedId } = await mockCol.insertOne({ nev: 'U2', cim: 'U2', ar: 2 });
+    mockCol.updateOne = async () => { throw new Error('db'); };
+    const res = await request(app).put(`/api/ingatlan/${insertedId}`).send({ ar: 999 });
+    expect(res.status).toBe(500);
+  });
+
+  // DELETE /api/ingatlan/:id - additional 3 tests
+  test('deleteOne: non-existent id returns 404', async () => {
+    const res = await request(app).delete('/api/ingatlan/not-found-321');
+    expect(res.status).toBe(404);
+  });
+
+  test('deleteOne: invalid id format returns 400/422', async () => {
+    const res = await request(app).delete('/api/ingatlan/!!bad-id!!');
+    expect([400, 422, 404]).toContain(res.status);
+  });
+
+  test('deleteOne: database error returns 500', async () => {
+    const { insertedId } = await mockCol.insertOne({ nev: 'D', cim: 'D', ar: 1 });
+    mockCol.deleteOne = async () => { throw new Error('db'); };
+    const res = await request(app).delete(`/api/ingatlan/${insertedId}`);
+    expect(res.status).toBe(500);
   });
 });
