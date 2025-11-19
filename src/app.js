@@ -1,10 +1,7 @@
 import express from 'express';
-import ingatlanRoutes from './routes/ingatlan.js';
 import errorHandler from './middleware/errorHandler.js';
 
 const app = express();
-
-// Middleware
 app.use(express.json());
 
 // Health check endpoint
