@@ -19,90 +19,109 @@ app.get('/', (req, res) => {
 
 // Use collection from app.locals so tests can inject mocks
 function getCollection(req) {
-  const col = req.app && req.app.locals && req.app.locals.collection;
-  if (!col) throw new Error('no collection');
-  return col;
+  // return null when no collection so callers can decide how to respond
+  return req.app && req.app.locals && req.app.locals.collection || null;
+}
+
+function sendServerError(res) {
+  res.status(500).json({ error: 'server error' });
 }
 
 // GET list
 app.get('/api/ingatlan', async (req, res) => {
+  const col = getCollection(req);
+  if (!col || typeof col.find !== 'function') return sendServerError(res);
+
   try {
-    const col = getCollection(req);
-    if (typeof col.find !== 'function') throw new Error('find not implemented');
     const cursor = col.find();
-    const items = Array.isArray(cursor) ? cursor : (typeof cursor.toArray === 'function' ? await cursor.toArray() : []);
-    res.status(200).json(items);
+    if (Array.isArray(cursor)) return res.status(200).json(cursor);
+    if (cursor && typeof cursor.toArray === 'function') {
+      const items = await cursor.toArray();
+      return res.status(200).json(items);
+    }
+    // unexpected shape -> return empty list
+    return res.status(200).json([]);
   } catch (err) {
-    res.status(500).json({ error: 'server error' });
+    return sendServerError(res);
   }
 });
 
 // GET single
 app.get('/api/ingatlan/:id', async (req, res) => {
+  const col = getCollection(req);
+  if (!col || typeof col.findOne !== 'function') return sendServerError(res);
+
   try {
-    const col = getCollection(req);
-    if (typeof col.findOne !== 'function') throw new Error('findOne not implemented');
     const id = req.params.id;
     const item = await col.findOne({ _id: id });
     if (!item) return res.status(404).end();
-    res.status(200).json(item);
+    return res.status(200).json(item);
   } catch (err) {
-    res.status(500).json({ error: 'server error' });
+    return sendServerError(res);
   }
 });
 
 // POST create
 app.post('/api/ingatlan', async (req, res) => {
+  const col = getCollection(req);
+  if (!col || typeof col.insertOne !== 'function') return sendServerError(res);
+
   try {
-    const col = getCollection(req);
-    if (typeof col.insertOne !== 'function') throw new Error('insertOne not implemented');
     const result = await col.insertOne(req.body);
-    const createdId = result && (typeof result.insertedId !== 'undefined') ? result.insertedId : undefined;
-    const created = createdId ? { ...req.body, _id: createdId } : { ...req.body };
-    res.status(201).json(created);
+    const id = result && typeof result.insertedId !== 'undefined' ? result.insertedId : (req.body && req.body._id);
+    const created = id ? { ...req.body, _id: id } : { ...req.body };
+    return res.status(201).json(created);
   } catch (err) {
-    res.status(500).json({ error: 'server error' });
+    return sendServerError(res);
   }
 });
 
 // PUT update
 app.put('/api/ingatlan/:id', async (req, res) => {
+  const col = getCollection(req);
+  if (!col || typeof col.updateOne !== 'function') return sendServerError(res);
+
   try {
-    const col = getCollection(req);
-    if (typeof col.updateOne !== 'function') throw new Error('updateOne not implemented');
     const id = req.params.id;
     const result = await col.updateOne({ _id: id }, { $set: req.body });
 
-    const matchedCount = result && (typeof result.matchedCount === 'number'
-      ? result.matchedCount
-      : (typeof result.modifiedCount === 'number' ? result.modifiedCount
-        : (typeof result.nModified === 'number' ? result.nModified : 0)));
+    // determine whether something was matched/updated
+    const matched = (result && (
+      typeof result.matchedCount === 'number' ? result.matchedCount :
+      typeof result.modifiedCount === 'number' ? result.modifiedCount :
+      typeof result.n === 'number' ? result.n :
+      (result.result && typeof result.result.nModified === 'number' ? result.result.nModified : 0)
+    )) || 0;
 
-    if (matchedCount === 0) return res.status(404).end();
+    if (matched === 0) return res.status(404).end();
 
     const updated = (typeof col.findOne === 'function') ? await col.findOne({ _id: id }) : { ...req.body, _id: id };
-    res.status(200).json(updated);
+    return res.status(200).json(updated);
   } catch (err) {
-    res.status(500).json({ error: 'server error' });
+    return sendServerError(res);
   }
 });
 
 // DELETE
 app.delete('/api/ingatlan/:id', async (req, res) => {
+  const col = getCollection(req);
+  if (!col || typeof col.deleteOne !== 'function') return sendServerError(res);
+
   try {
-    const col = getCollection(req);
-    if (typeof col.deleteOne !== 'function') throw new Error('deleteOne not implemented');
     const id = req.params.id;
     const result = await col.deleteOne({ _id: id });
 
-    const deletedCount = result && (typeof result.deletedCount === 'number'
-      ? result.deletedCount
-      : (typeof result.deleted === 'number' ? result.deleted : 0));
+    const deleted = (result && (
+      typeof result.deletedCount === 'number' ? result.deletedCount :
+      typeof result.deleted === 'number' ? result.deleted :
+      typeof result.n === 'number' ? result.n :
+      (result.result && typeof result.result.n === 'number' ? result.result.n : 0)
+    )) || 0;
 
-    if (deletedCount === 0) return res.status(404).end();
-    res.status(204).end();
+    if (deleted === 0) return res.status(404).end();
+    return res.status(204).end();
   } catch (err) {
-    res.status(500).json({ error: 'server error' });
+    return sendServerError(res);
   }
 });
 
