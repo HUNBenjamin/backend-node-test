@@ -16,28 +16,24 @@ app.get('/', (req, res) => {
 });
 
 // Use collection from app.locals so tests can inject mocks
-function getCollection(req) {
-  // return null when no collection so callers can decide how to respond
-  return req.app && req.app.locals && req.app.locals.collection || null;
-}
+const getCollection = (req) => req?.app?.locals?.collection ?? null;
 
-function sendServerError(res) {
-  res.status(500).json({ error: 'server error' });
-}
+const hasMethod = (col, name) => col && typeof col[name] === 'function';
+
+const sendServerError = (res) => res.status(500).json({ error: 'server error' });
 
 // GET list
 app.get('/api/ingatlan', async (req, res) => {
   const col = getCollection(req);
-  if (!col || typeof col.find !== 'function') return sendServerError(res);
+  if (!hasMethod(col, 'find')) return sendServerError(res);
 
   try {
     const cursor = col.find();
     if (Array.isArray(cursor)) return res.status(200).json(cursor);
-    if (cursor && typeof cursor.toArray === 'function') {
+    if (hasMethod(cursor, 'toArray')) {
       const items = await cursor.toArray();
       return res.status(200).json(items);
     }
-    // unexpected shape -> return empty list
     return res.status(200).json([]);
   } catch (err) {
     return sendServerError(res);
@@ -47,7 +43,7 @@ app.get('/api/ingatlan', async (req, res) => {
 // GET single
 app.get('/api/ingatlan/:id', async (req, res) => {
   const col = getCollection(req);
-  if (!col || typeof col.findOne !== 'function') return sendServerError(res);
+  if (!hasMethod(col, 'findOne')) return sendServerError(res);
 
   try {
     const id = req.params.id;
@@ -62,11 +58,11 @@ app.get('/api/ingatlan/:id', async (req, res) => {
 // POST create
 app.post('/api/ingatlan', async (req, res) => {
   const col = getCollection(req);
-  if (!col || typeof col.insertOne !== 'function') return sendServerError(res);
+  if (!hasMethod(col, 'insertOne')) return sendServerError(res);
 
   try {
     const result = await col.insertOne(req.body);
-    const id = result && typeof result.insertedId !== 'undefined' ? result.insertedId : (req.body && req.body._id);
+    const id = (result && typeof result.insertedId !== 'undefined') ? result.insertedId : (req.body && req.body._id);
     const created = id ? { ...req.body, _id: id } : { ...req.body };
     return res.status(201).json(created);
   } catch (err) {
@@ -77,13 +73,12 @@ app.post('/api/ingatlan', async (req, res) => {
 // PUT update
 app.put('/api/ingatlan/:id', async (req, res) => {
   const col = getCollection(req);
-  if (!col || typeof col.updateOne !== 'function') return sendServerError(res);
+  if (!hasMethod(col, 'updateOne')) return sendServerError(res);
 
   try {
     const id = req.params.id;
     const result = await col.updateOne({ _id: id }, { $set: req.body });
 
-    // determine whether something was matched/updated
     const matched = (result && (
       typeof result.matchedCount === 'number' ? result.matchedCount :
       typeof result.modifiedCount === 'number' ? result.modifiedCount :
@@ -93,7 +88,7 @@ app.put('/api/ingatlan/:id', async (req, res) => {
 
     if (matched === 0) return res.status(404).end();
 
-    const updated = (typeof col.findOne === 'function') ? await col.findOne({ _id: id }) : { ...req.body, _id: id };
+    const updated = hasMethod(col, 'findOne') ? await col.findOne({ _id: id }) : { ...req.body, _id: id };
     return res.status(200).json(updated);
   } catch (err) {
     return sendServerError(res);
@@ -103,7 +98,7 @@ app.put('/api/ingatlan/:id', async (req, res) => {
 // DELETE
 app.delete('/api/ingatlan/:id', async (req, res) => {
   const col = getCollection(req);
-  if (!col || typeof col.deleteOne !== 'function') return sendServerError(res);
+  if (!hasMethod(col, 'deleteOne')) return sendServerError(res);
 
   try {
     const id = req.params.id;
