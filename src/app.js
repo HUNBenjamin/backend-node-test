@@ -1,5 +1,6 @@
 import express from 'express';
 import errorHandler from './middleware/errorHandler.js';
+import ingatlanRoutes from './routes/ingatlan.js';
 
 const app = express();
 app.use(express.json());
