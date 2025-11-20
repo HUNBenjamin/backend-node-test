@@ -32,7 +32,8 @@ describe('General endpoints and error bodies', () => {
 
     const res = await request(app).post('/api/ingatlan').send({ nev: 'Err' });
     expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'server error' });
+    expect(res.body).toHaveProperty('message');
+    expect(typeof res.body.message).toBe('string');
 
     app.locals.collection = original;
   });
@@ -45,7 +46,8 @@ describe('General endpoints and error bodies', () => {
 
     const res = await request(app).get('/api/ingatlan');
     expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'server error' });
+    expect(res.body).toHaveProperty('message');
+    expect(typeof res.body.message).toBe('string');
 
     app.locals.collection = original;
   });

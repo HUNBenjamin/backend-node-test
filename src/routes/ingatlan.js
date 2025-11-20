@@ -56,7 +56,17 @@ router.put('/:id', async (req, res, next) => {
     const data = req.body;
     if (!data || Object.keys(data).length === 0) return res.status(400).json({ message: 'Empty body' });
     const query = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { _id: id };
-    await col.updateOne(query, { $set: data });
+    const result = await col.updateOne(query, { $set: data });
+
+    const matched = (result && (
+      typeof result.matchedCount === 'number' ? result.matchedCount :
+      typeof result.modifiedCount === 'number' ? result.modifiedCount :
+      typeof result.n === 'number' ? result.n :
+      (result.result && typeof result.result.nModified === 'number' ? result.result.nModified : 0)
+    )) || 0;
+
+    if (matched === 0) return res.status(404).json({ message: 'Not found' });
+
     const updated = await col.findOne(query);
     res.json(updated);
   } catch (err) {
@@ -72,8 +82,18 @@ router.delete('/:id', async (req, res, next) => {
     const { id } = req.params;
     if (!id) return res.status(400).json({ message: 'Invalid id' });
     const query = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { _id: id };
-    await col.deleteOne(query);
-    res.status(204).end();
+    const result = await col.deleteOne(query);
+
+    const deleted = (result && (
+      typeof result.deletedCount === 'number' ? result.deletedCount :
+      typeof result.deleted === 'number' ? result.deleted :
+      typeof result.n === 'number' ? result.n :
+      (result.result && typeof result.result.n === 'number' ? result.result.n : 0)
+    )) || 0;
+
+    if (deleted === 0) return res.status(404).json({ message: 'Not found' });
+
+    return res.status(204).end();
   } catch (err) {
     next(err);
   }
