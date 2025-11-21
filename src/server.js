@@ -6,20 +6,19 @@ const PORT = process.env.PORT || 3000;
 const DATABASE_URL = process.env.DATABASE_URL;
 
 async function start() {
-  // If DATABASE_URL is provided, connect and attach collection to app.locals
   if (DATABASE_URL) {
     let client;
     try {
       client = new MongoClient(DATABASE_URL);
       await client.connect();
-      // Extract database name from URL or use default
+      
       let dbName = 'ingatlanDB';
       try {
         const url = new URL(DATABASE_URL);
         const parsed = url.pathname.split('/').filter(Boolean)[0];
         if (parsed) dbName = parsed;
       } catch (_) {
-        // keep default dbName
+        
       }
       const db = client.db(dbName);
       const collection = db.collection('ingatlanok');
