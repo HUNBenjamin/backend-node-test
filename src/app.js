@@ -20,7 +20,7 @@ const getCollection = (req) => req?.app?.locals?.collection ?? null;
 
 const hasMethod = (col, name) => col && typeof col[name] === 'function';
 
-const sendServerError = (res) => res.status(500).json({ error: 'server error' });
+const sendServerError = (res) => res.status(500).json({ message: 'Server error' });
 
 // GET list
 app.get('/api/ingatlan', async (req, res) => {
