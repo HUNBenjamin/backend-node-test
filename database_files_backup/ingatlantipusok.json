@@ -1,0 +1,37 @@
+
+  {
+    "_id": 1,
+    "tipus_nev": "Családi ház",
+    "leiras": "Egylakásos családi ház",
+    "jellemzo": "kert, garázs",
+    "alapterulet_min": 80
+  }
+  {
+    "_id": 2,
+    "tipus_nev": "Társasházi lakás",
+    "leiras": "Lakás egy társasházban",
+    "jellemzo": "lift, erkély",
+    "alapterulet_min": 40
+  }
+  {
+    "_id": 3,
+    "tipus_nev": "Panel lakás",
+    "leiras": "Panel épületben lévő lakás",
+    "jellemzo": "gyorsan fűthető",
+    "alapterulet_min": 30
+  }
+  {
+    "_id": 4,
+    "tipus_nev": "Nyaraló",
+    "leiras": "Üdülő célú ingatlan",
+    "jellemzo": "vízközeli, szezonális használat",
+    "alapterulet_min": 50
+  }
+  {
+    "_id": 5,
+    "tipus_nev": "Iroda",
+    "leiras": "Üzleti célú irodaépület",
+    "jellemzo": "klimatizált, parkolóhely",
+    "alapterulet_min": 100
+  }
+
