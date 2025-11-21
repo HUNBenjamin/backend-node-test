@@ -1,11 +1,14 @@
 import errorHandler from '../../src/middleware/errorHandler.js';
 
+// Hibakezelő middleware tesztelése
+
 describe('errorHandler (unit)', () => {
   const originalEnv = process.env.NODE_ENV;
   afterEach(() => {
     process.env.NODE_ENV = originalEnv;
   });
 
+  // Termelésben az hibak részletei rejtve vannak
   test('production hides error details', () => {
     process.env.NODE_ENV = 'production';
 
@@ -28,6 +31,7 @@ describe('errorHandler (unit)', () => {
     expect(nextCalled).toBe(false);
   });
 
+  // Fejlesztésben a hibák teljes részletei megjelennek
   test('development includes error details', () => {
     process.env.NODE_ENV = 'development';
 
@@ -51,6 +55,7 @@ describe('errorHandler (unit)', () => {
     expect(nextCalled).toBe(false);
   });
 
+  // Ha már elküldtek fejléc, a next() függvényt hívja meg
   test('calls next when headersSent is true', () => {
     process.env.NODE_ENV = 'production';
 
