@@ -1,5 +1,7 @@
 import { createMockCollection } from '../helpers/mockCollection.js';
 
+// Tesztek a mock adatbázis gyűjteményhez
+
 describe('createMockCollection (unit)', () => {
   let col;
 
@@ -7,6 +9,7 @@ describe('createMockCollection (unit)', () => {
     col = createMockCollection();
   });
 
+  // Új dokumentum hozzáadása és majd megtalálása
   test('insertOne returns insertedId and findOne retrieves document', async () => {
     const doc = { nev: 'A' };
     const r = await col.insertOne(doc);
@@ -18,6 +21,8 @@ describe('createMockCollection (unit)', () => {
     expect(item.nev).toBe(doc.nev);
   });
 
+  // Dokumentum módosítása
+   
   test('updateOne updates fields and returns matchedCount', async () => {
     const r = await col.insertOne({ nev: 'B', ar: 10 });
     const id = r.insertedId;
@@ -27,6 +32,8 @@ describe('createMockCollection (unit)', () => {
     expect(after).toHaveProperty('ar', 20);
   });
 
+  // Dokumentum törlése
+  
   test('deleteOne removes item and findOne returns null', async () => {
     const r = await col.insertOne({ nev: 'C' });
     const id = r.insertedId;
@@ -36,6 +43,8 @@ describe('createMockCollection (unit)', () => {
     expect(after).toBeNull();
   });
 
+  // Összes dokumentum lekérdezése tömbben
+   
   test('find returns an object with toArray that yields array', async () => {
     await col.insertOne({ nev: 'X' });
     await col.insertOne({ nev: 'Y' });
