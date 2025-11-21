@@ -66,5 +66,3 @@ npm test         # Összes teszt
 ## 📝 Megjegyzés
 
 A projekt az Ingatlan API-t Express.js-sel valósítja meg, MongoDB-vel az adatbázishoz.
-
-Apró szerkesztés: README formázás javítva.
